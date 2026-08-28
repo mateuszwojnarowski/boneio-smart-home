@@ -1,3 +1,10 @@
+external_components:
+- source:
+    type: git
+    url: https://github.com/bruxy70/Venetian-Blinds-Control
+    ref: master
+  components: [venetian_blinds]
+
 substitutions:
   name: boneio-cm-l-07-0848ec
   friendly_name: BoneIO ESP Cover Mix Dół
@@ -45,7 +52,6 @@ packages:
         packages/boards/cover/out07_08.yaml, packages/boards/cover/out09_10.yaml,
       packages/boards/cover/out11_12.yaml, packages/boards/cover/out13_14.yaml, 
         packages/boards/cover/out15_16.yaml, 
-        packages/boards/output/out17_18.yaml, 
         packages/boards/output/out19_20.yaml, 
         packages/boards/output/out21_22.yaml, 
         packages/boards/output/out23_24.yaml, 
@@ -70,8 +76,32 @@ time:
   timezone: Europe/Warsaw
   id: homeassistant_time
 
+switch:
+- platform: gpio
+  id: cover_open_09_out17
+  pin:
+    pcf8574: pcf_left
+    number: 0
+    mode:
+      output: true
+    inverted: true
+  interlock: &cover_interlock_09 [cover_open_09_out17, cover_close_09_out18]
+  interlock_wait_time: 5ms
+  restore_mode: always off
+
+- platform: gpio
+  id: cover_close_09_out18
+  pin:
+    pcf8574: pcf_left
+    number: 1
+    mode:
+      output: true
+    inverted: true
+  interlock: *cover_interlock_09
+  restore_mode: always off
+
 cover:
-- platform: time_based
+- platform: venetian_blinds
   name: cover.narożne_duże
   id: cover_01
   open_action:
@@ -80,11 +110,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_01_out02
   close_duration: 90s
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_01_out01
   - switch.turn_off: cover_close_01_out02
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.narożne_małe
   id: cover_02
   open_action:
@@ -93,11 +124,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_02_out04
   close_duration: 90s
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_02_out03
   - switch.turn_off: cover_close_02_out04
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.kuchnia
   id: cover_03
   open_action:
@@ -106,11 +138,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_03_out06
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_03_out05
   - switch.turn_off: cover_close_03_out06
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.jadalnia
   id: cover_04
   open_action:
@@ -119,11 +152,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_04_out08
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_04_out07
   - switch.turn_off: cover_close_04_out08
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.hst_left
   id: cover_05
   open_action:
@@ -132,11 +166,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_05_out10
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_05_out09
   - switch.turn_off: cover_close_05_out10
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.hst_right
   id: cover_06
   open_action:
@@ -145,11 +180,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_06_out12
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_06_out11
   - switch.turn_off: cover_close_06_out12
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.gościnny
   id: cover_07
   open_action:
@@ -158,11 +194,12 @@ cover:
   close_action:
   - switch.turn_on: cover_close_07_out14
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_07_out13
   - switch.turn_off: cover_close_07_out14
 
-- platform: time_based
+- platform: venetian_blinds
   name: cover.łazienka
   id: cover_08
   open_action:
@@ -171,19 +208,26 @@ cover:
   close_action:
   - switch.turn_on: cover_close_08_out16
   close_duration: 2min
+  tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_08_out15
   - switch.turn_off: cover_close_08_out16
 
+- platform: venetian_blinds
+  name: cover.garaż
+  id: cover_09
+  open_action:
+  - switch.turn_on: cover_open_09_out17
+  open_duration: 90s
+  close_action:
+  - switch.turn_on: cover_close_09_out18
+  close_duration: 90s
+  tilt_duration: 2000ms
+  stop_action:
+  - switch.turn_off: cover_open_09_out17
+  - switch.turn_off: cover_close_09_out18
+
 light:
-- platform: binary
-  name: Light 17
-  output: out_17
-  id: light_17
-- platform: binary
-  name: Light 18
-  output: out_18
-  id: light_18
 - platform: binary
   name: Light 19
   output: out_19
@@ -251,12 +295,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_01
-  on_release:
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_01
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_01).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_02
@@ -267,12 +329,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_01
-  on_release:
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_01
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_01).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_03
@@ -283,12 +363,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_02
-  on_release:
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_02
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_02).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_04
@@ -299,12 +397,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_02
-  on_release:
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_02
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_02).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_05
@@ -315,12 +431,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_03
-  on_release:
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_03
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_03).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_06
@@ -331,12 +465,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_03
-  on_release:
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_03
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_03).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_07
@@ -347,12 +499,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_04
-  on_release:
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_04
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_04).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_08
@@ -363,12 +533,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_04
-  on_release:
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_04
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_04).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_09
@@ -379,12 +567,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_05
-  on_release:
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_05
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_05).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_10
@@ -395,12 +601,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_05
-  on_release:
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_05
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_05).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_11
@@ -411,12 +635,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_06
-  on_release:
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_06
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_06).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_12
@@ -427,12 +669,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_06
-  on_release:
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_06
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_06).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_13
@@ -443,12 +703,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_07
-  on_release:
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_07
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_07).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_14
@@ -459,12 +737,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_07
-  on_release:
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_07
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_07).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_15
@@ -475,12 +771,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.open: cover_08
-  on_release:
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_08
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_08).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_16
@@ -491,12 +805,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - cover.close: cover_08
-  on_release:
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
     then:
-    - cover.stop: cover_08
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_08).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_17
@@ -507,9 +839,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - light.toggle: light_17
+    - lambda: |-
+        auto call = id(cover_09).make_call();
+        if (id(cover_09).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_open();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_09).make_call();
+        if (id(cover_09).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::min(1.0f, id(cover_09).tilt + 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_18
@@ -520,9 +873,30 @@ binary_sensor:
     mode:
       input: true
     inverted: true
-  on_press:
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
     then:
-    - light.toggle: light_18
+    - lambda: |-
+        auto call = id(cover_09).make_call();
+        if (id(cover_09).current_operation == COVER_OPERATION_IDLE) {
+          call.set_command_close();
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_09).make_call();
+        if (id(cover_09).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(std::max(0.0f, id(cover_09).tilt - 0.1f));
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
 
 - platform: gpio
   name: IN_19

@@ -117,7 +117,7 @@ light:
   output: out_10
   id: light_10
 - platform: binary
-  name: Light 11
+  name: light.wiatrołap
   output: out_11
   id: light_11
 - platform: binary

@@ -2,7 +2,7 @@
 name: "ESPHome Expert"
 description: "Use when creating, editing, reviewing, troubleshooting, or validating ESPHome YAML configurations and boneIO packages before compiling or uploading firmware to a device."
 argument-hint: "Describe the ESPHome config change or name the YAML file to validate"
-tools: [read, edit, search, execute]
+tools: [vscode, execute, read, agent, edit, search, web, browser, ms-python.python, todo]
 user-invocable: true
 disable-model-invocation: false
 ---
