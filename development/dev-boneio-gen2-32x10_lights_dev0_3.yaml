@@ -6,7 +6,7 @@ globals:
 
 substitutions:
   name: boneio-gen2-32-l-01
-  friendly_name: "boneIO ESP Gen2 32x10 Lights"
+  friendly_name: "boneIO ESP gen2 32x10 Lights"
   serial_prefix: "esp2" # Don't change it.
   firmware_manifest: "https://boneio.eu/fwesp/boneio-gen2-32x10_lights.json"
 
@@ -16,19 +16,13 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: boneio.32x10-lights-gen2
-    version: "0.1"
+    version: "dev0.3"
   on_boot:
     priority: -100
     then:
       - delay: 5s
-      - if:
-          condition:
-            lambda: "return id(serial_no) != nullptr;"
-          then:
-            - component.update: serial_no
-            - logger.log: "Serial No updated on boot"
-          else:
-            - logger.log: "Serial No component not found"
+      - component.update: serial_no
+      - logger.log: "Serial No updated on boot"
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -73,12 +67,12 @@ gp8403:
   address: 0x58
   voltage: 10V
 
-# one_wire:
-#   - platform: ds2484
-#     id: ds2484_hub
-#     i2c_id: i2c_bus
-#     address: 0x18
-#     active_pullup: true
+one_wire:
+  - platform: ds2484
+    id: ds2484_hub
+    i2c_id: i2c_bus
+    address: 0x18
+    active_pullup: true
 
 packages:
   internals_packages:
@@ -87,11 +81,11 @@ packages:
     files: ["packages/devices/serial_no.yaml"]
 
 dashboard_import:
-  package_import_url: github://boneIO-eu/esphome/development/dev-boneio-gen2-32x10_lights_v0_1.yaml@main
+  package_import_url: github://boneIO-eu/esphome/development/dev-boneio-gen2-32x10_lights_v0_3.yaml@main
   import_full_config: true
 
 logger:
-  hardware_uart: USB_SERIAL_JTAG
+  hardware_uart: UART0
 api:
   reboot_timeout: 0s
 ota:
