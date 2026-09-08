@@ -91,7 +91,7 @@ dashboard_import:
   import_full_config: true
 
 logger:
-  hardware_uart: UART0
+  hardware_uart: USB_SERIAL_JTAG
 api:
   reboot_timeout: 0s
 ota:
@@ -531,7 +531,7 @@ light:
     pin: GPIO8
     num_leds: 1
     chipset: WS2812
-    rgb_order: GRB
+    channel_colors: GRB
     default_transition_length: 0s
   - platform: binary
     name: "Light 01"
