@@ -127,7 +127,7 @@ sensor:
   - platform: adc
     pin: GPIO4
     id: raw_sig
-    attenuation: 11db
+    attenuation: 12db
     update_interval: 50ms
     filters:
       - multiply: 1.0
