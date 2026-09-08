@@ -1,9 +1,3 @@
-globals:
-  - id: confirmed_shutter_count
-    type: int
-    restore_value: no
-    initial_value: "0"
-
 substitutions:
   name: boneio-gen2-32-l-01
   friendly_name: "boneIO ESP gen2 32x10 Lights"
@@ -26,6 +20,7 @@ esphome:
 
 esp32:
   board: esp32-s3-devkitc-1
+  cpu_frequency: 240MHz
   framework:
     type: esp-idf
 
@@ -123,28 +118,23 @@ sensor:
     id: raw_sig
     attenuation: 12db
     update_interval: 50ms
-    filters:
-      - multiply: 1.0
+    samples: 4
     on_value:
       then:
         - lambda: |-
-            static int last_raw_n = 0;
-            static int stability_counter = 0;
-            float v_adc = x;
-            float v_in = id(ina_vin).state;
-            if (v_in > 5.0) {
-              int current_n = int(((v_adc * 249.6) / v_in) + 0.5);
-              if (current_n > 31) current_n = 31;
-              if (current_n < 0) current_n = 0;
-              if (current_n == last_raw_n) {
-                if (stability_counter < 10) stability_counter++;
-              } else {
-                stability_counter = 0;
-                last_raw_n = current_n;
-              }
-              if (stability_counter == 10) {
-                id(confirmed_shutter_count) = current_n;
-              }
+            static int last_raw_n = -1, stable = 0;
+            const float v_in = id(ina_vin).state;
+            if (!(v_in > 5.0f)) return;
+            const int n = std::clamp((int) lroundf(x * 249.6f / v_in), 0, 31);
+            if (n == last_raw_n) { if (stable < 10) ++stable; }
+            else { last_raw_n = n; stable = 0; }
+            const bool changed = !id(shutter_count_num).has_state() || n != (int) id(shutter_count_num).state;
+            if (stable == 10 && changed) {
+              id(shutter_count_num).publish_state(n);
+              char buf[6];
+              for (int i = 0; i < 5; ++i) buf[4 - i] = ((n >> i) & 1) ? '1' : '0';
+              buf[5] = '\0';
+              id(binary_address).publish_state(buf);
             }
   - platform: template
     name: "Shutter Count"
@@ -152,8 +142,7 @@ sensor:
     unit_of_measurement: ""
     icon: "mdi:window-shutter-cog"
     accuracy_decimals: 0
-    update_interval: 100ms
-    lambda: "return id(confirmed_shutter_count);"
+    update_interval: never
   - platform: lm75b
     id: boneIO_temp
     name: "Temperature"
@@ -163,11 +152,12 @@ sensor:
       - above: 70.0
         then:
           - switch.turn_on: buzzer
-      - below: 70.0
+      - below: 65.0
         then:
           - switch.turn_off: buzzer
   - platform: ina226
     address: 0x40
+    update_interval: 10s
     adc_time:
       voltage: 140us
       current: 332us
@@ -1124,12 +1114,4 @@ text_sensor:
   - platform: template
     name: "Shutter Address Binary"
     id: binary_address
-    update_interval: 100ms
-    lambda: |-
-      int n = id(confirmed_shutter_count);
-      char buf[6];
-      for (int i = 0; i < 5; i++) {
-          buf[4-i] = (n & (1 << i)) ? '1' : '0';
-      }
-      buf[5] = '\0';
-      return {buf};
+    update_interval: never
