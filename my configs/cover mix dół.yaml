@@ -33,6 +33,30 @@ ethernet:
     mode: CLK_EXT_IN
   phy_addr: 1
   power_pin: GPIO16
+  manual_ip:
+    static_ip: 10.0.1.3
+    gateway: 10.0.1.1
+    subnet: 255.255.255.0
+
+# UDP: the click-type classification for the group buttons happens locally here (where the
+# physical IN_34/IN_35 buttons are) since packet_transport/UDP gives no delivery guarantee and
+# can't reliably reproduce exact press/release timing on a remote device. Only the resulting
+# momentary pulses are broadcast to cover mix góra, which reacts to them with on_press (an
+# instant edge trigger, no timing involved).
+# Also receives the master switch pulse broadcast by 32x10.
+udp:
+  addresses:
+    - 10.0.1.4   # cover mix góra
+
+packet_transport:
+  platform: udp
+  binary_sensors:
+    - group_open_pulse
+    - group_close_pulse
+    - group_tilt_open_pulse
+    - group_tilt_close_pulse
+    - group_step_open_pulse
+    - group_step_close_pulse
 
 dashboard_import:
   package_import_url: 
@@ -106,10 +130,10 @@ cover:
   id: cover_01
   open_action:
   - switch.turn_on: cover_open_01_out01
-  open_duration: 90s
+  open_duration: 100s
   close_action:
   - switch.turn_on: cover_close_01_out02
-  close_duration: 90s
+  close_duration: 100s
   tilt_duration: 2000ms
   stop_action:
   - switch.turn_off: cover_open_01_out01
@@ -277,7 +301,7 @@ light:
   output: out_30
   id: light_30
 - platform: binary
-  name: Light 31
+  name: lazienka.dol_led
   output: out_31
   id: light_31
 - platform: binary
@@ -309,7 +333,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.5f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_01).make_call();
@@ -343,7 +381,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_01).make_call();
@@ -377,7 +429,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.5f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_02).make_call();
@@ -411,7 +477,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_02).make_call();
@@ -445,7 +525,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_03).make_call();
@@ -479,7 +573,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_03).make_call();
@@ -513,7 +621,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_04).make_call();
@@ -547,7 +669,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_04).make_call();
@@ -581,7 +717,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_05).make_call();
@@ -615,7 +765,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_05).make_call();
@@ -649,7 +813,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_06).make_call();
@@ -683,7 +861,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_06).make_call();
@@ -717,7 +909,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_07).make_call();
@@ -751,7 +957,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_07).make_call();
+        if (id(cover_07).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_07).make_call();
@@ -785,7 +1005,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.6f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_08).make_call();
@@ -819,7 +1053,21 @@ binary_sensor:
         call.perform();
   - timing:
     - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
     - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call = id(cover_08).make_call();
+        if (id(cover_08).current_operation == COVER_OPERATION_IDLE) {
+          call.set_tilt(0.0f);
+        } else {
+          call.set_command_stop();
+        }
+        call.perform();
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
     then:
     - lambda: |-
         auto call = id(cover_08).make_call();
@@ -1089,23 +1337,271 @@ binary_sensor:
       input: true
     inverted: true
 
+# IN_34: group "raise" button, same 3-branch pattern (long-press / double-click / single-
+# click) as the individual cover buttons, applied to cover_01..cover_06 at once.
 - platform: gpio
   name: IN_34
+  id: in_34
   pin:
     pcf8574: pcf_inputs_28to35_menu
     number: 5
     mode:
       input: true
     inverted: true
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_command_open(); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_command_open(); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_command_open(); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_command_open(); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_command_open(); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_command_open(); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_open_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_open_pulse).publish_state(false);
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_tilt(0.6f); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_tilt(0.6f); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_tilt(0.6f); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_tilt(0.6f); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_tilt(0.6f); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_tilt(0.6f); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_tilt_open_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_tilt_open_pulse).publish_state(false);
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_tilt(std::min(1.0f, id(cover_01).tilt + 0.1f)); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_tilt(std::min(1.0f, id(cover_02).tilt + 0.1f)); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_tilt(std::min(1.0f, id(cover_03).tilt + 0.1f)); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_tilt(std::min(1.0f, id(cover_04).tilt + 0.1f)); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_tilt(std::min(1.0f, id(cover_05).tilt + 0.1f)); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_tilt(std::min(1.0f, id(cover_06).tilt + 0.1f)); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_step_open_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_step_open_pulse).publish_state(false);
 
+# IN_35: group "lower" button, same 3-branch pattern as IN_34 but in the close direction,
+# applied to cover_01..cover_06 at once.
 - platform: gpio
   name: IN_35
+  id: in_35
   pin:
     pcf8574: pcf_inputs_28to35_menu
     number: 6
     mode:
       input: true
     inverted: true
+  on_multi_click:
+  - timing:
+    - ON for at least 2s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_command_close(); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_command_close(); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_command_close(); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_command_close(); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_command_close(); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_command_close(); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_close_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_close_pulse).publish_state(false);
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at most 0.35s
+    - ON for at most 0.4s
+    - OFF for at least 0.1s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_tilt(0.0f); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_tilt(0.0f); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_tilt(0.0f); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_tilt(0.0f); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_tilt(0.0f); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_tilt(0.0f); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_tilt_close_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_tilt_close_pulse).publish_state(false);
+  - timing:
+    - ON for at most 0.4s
+    - OFF for at least 0.35s
+    then:
+    - lambda: |-
+        auto call1 = id(cover_01).make_call();
+        if (id(cover_01).current_operation == COVER_OPERATION_IDLE) { call1.set_tilt(std::max(0.0f, id(cover_01).tilt - 0.1f)); } else { call1.set_command_stop(); }
+        call1.perform();
+        auto call2 = id(cover_02).make_call();
+        if (id(cover_02).current_operation == COVER_OPERATION_IDLE) { call2.set_tilt(std::max(0.0f, id(cover_02).tilt - 0.1f)); } else { call2.set_command_stop(); }
+        call2.perform();
+        auto call3 = id(cover_03).make_call();
+        if (id(cover_03).current_operation == COVER_OPERATION_IDLE) { call3.set_tilt(std::max(0.0f, id(cover_03).tilt - 0.1f)); } else { call3.set_command_stop(); }
+        call3.perform();
+        auto call4 = id(cover_04).make_call();
+        if (id(cover_04).current_operation == COVER_OPERATION_IDLE) { call4.set_tilt(std::max(0.0f, id(cover_04).tilt - 0.1f)); } else { call4.set_command_stop(); }
+        call4.perform();
+        auto call5 = id(cover_05).make_call();
+        if (id(cover_05).current_operation == COVER_OPERATION_IDLE) { call5.set_tilt(std::max(0.0f, id(cover_05).tilt - 0.1f)); } else { call5.set_command_stop(); }
+        call5.perform();
+        auto call6 = id(cover_06).make_call();
+        if (id(cover_06).current_operation == COVER_OPERATION_IDLE) { call6.set_tilt(std::max(0.0f, id(cover_06).tilt - 0.1f)); } else { call6.set_command_stop(); }
+        call6.perform();
+    - lambda: |-
+        id(group_step_close_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(group_step_close_pulse).publish_state(false);
+
+# Manually-published pulses (no lambda): set true then false by the IN_34/IN_35 on_multi_click
+# actions above, and broadcast over UDP to cover mix góra so it reacts with on_press.
+- platform: template
+  id: group_open_pulse
+
+- platform: template
+  id: group_close_pulse
+
+- platform: template
+  id: group_tilt_open_pulse
+
+- platform: template
+  id: group_tilt_close_pulse
+
+- platform: template
+  id: group_step_open_pulse
+
+- platform: template
+  id: group_step_close_pulse
+
+# Mirrored master switch pulse from 32x10 (physical button + 5s-hold classification is
+# done there; here we just react to the resulting pulse with on_press, no timing needed).
+- platform: packet_transport
+  provider: boneio-32-l-07-e99700
+  id: master_switch_mirror
+  remote_id: master_switch_pulse
+  on_press:
+    then:
+    - cover.close: cover_01
+    - cover.close: cover_02
+    - cover.close: cover_03
+    - cover.close: cover_04
+    - cover.close: cover_05
+    - cover.close: cover_06
+    - cover.close: cover_07
+    - cover.close: cover_08
+    - cover.close: cover_09
+    - light.turn_off: light_19
+    - light.turn_off: light_20
+    - light.turn_off: light_21
+    - light.turn_off: light_22
+    - light.turn_off: light_23
+    - light.turn_off: light_24
+    - light.turn_off: light_25
+    - light.turn_off: light_26
+    - light.turn_off: light_27
+    - light.turn_off: light_28
+    - light.turn_off: light_29
+    - light.turn_off: light_30
+    - light.turn_off: light_31
+    - light.turn_off: light_32
+
+# Mirrored master switch STOP pulse from 32x10 (a quick press on the master switch, any
+# time, interrupts/stops all local covers - e.g. to correct a mistaken 5s-hold close-all).
+- platform: packet_transport
+  provider: boneio-32-l-07-e99700
+  id: master_switch_stop_mirror
+  remote_id: master_switch_stop_pulse
+  on_press:
+    then:
+    - cover.stop: cover_01
+    - cover.stop: cover_02
+    - cover.stop: cover_03
+    - cover.stop: cover_04
+    - cover.stop: cover_05
+    - cover.stop: cover_06
+    - cover.stop: cover_07
+    - cover.stop: cover_08
+    - cover.stop: cover_09
 ######################
 ### MODBUS SECTION ###
 ######################

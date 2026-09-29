@@ -26,6 +26,26 @@ ethernet:
     mode: CLK_EXT_IN
   phy_addr: 1
   power_pin: GPIO16
+  manual_ip:
+    static_ip: 10.0.1.5
+    gateway: 10.0.1.1
+    subnet: 255.255.255.0
+
+# UDP: the 5s-hold classification for the master switch happens locally here (where the
+# physical IN_33 button is) since packet_transport/UDP gives no delivery guarantee and can't
+# reliably reproduce exact press/release timing on a remote device. Only the resulting
+# momentary pulse (master_switch_pulse) is broadcast to cover mix dół and cover mix góra,
+# which react to it with on_press (an instant edge trigger, no timing involved).
+udp:
+  addresses:
+    - 10.0.1.3   # cover mix dół
+    - 10.0.1.4   # cover mix góra
+
+packet_transport:
+  platform: udp
+  binary_sensors:
+    - master_switch_pulse
+    - master_switch_stop_pulse
 
 dashboard_import:
   package_import_url: 
@@ -85,11 +105,11 @@ light:
   output: out_02
   id: light_02
 - platform: binary
-  name: Light 03
+  name: light.wyspa
   output: out_03
   id: light_03
 - platform: binary
-  name: Light 04
+  name: light.led_blat
   output: out_04
   id: light_04
 - platform: binary
@@ -97,11 +117,11 @@ light:
   output: out_05
   id: light_05
 - platform: binary
-  name: Light 06
+  name: lights.goscinny
   output: out_06
   id: light_06
 - platform: binary
-  name: Light 07
+  name: lights.lazienka_lustro
   output: out_07
   id: light_07
 - platform: binary
@@ -129,7 +149,7 @@ light:
   output: out_13
   id: light_13
 - platform: binary
-  name: Light 14
+  name: lights.spizarnia
   output: out_14
   id: light_14
 - platform: binary
@@ -624,12 +644,70 @@ binary_sensor:
 
 - platform: gpio
   name: IN_33
+  id: in_33
   pin:
     pcf8574: pcf_inputs_28to35_menu
     number: 4
     mode:
       input: true
     inverted: true
+  on_multi_click:
+  - timing:
+    - ON for at least 5s
+    then:
+    - light.turn_off: light_01
+    - light.turn_off: light_02
+    - light.turn_off: light_03
+    - light.turn_off: light_04
+    - light.turn_off: light_05
+    - light.turn_off: light_06
+    - light.turn_off: light_07
+    - light.turn_off: light_08
+    - light.turn_off: light_09
+    - light.turn_off: light_10
+    - light.turn_off: light_11
+    - light.turn_off: light_12
+    - light.turn_off: light_13
+    - light.turn_off: light_14
+    - light.turn_off: light_15
+    - light.turn_off: light_16
+    - light.turn_off: light_17
+    - light.turn_off: light_18
+    - light.turn_off: light_19
+    - light.turn_off: light_20
+    - light.turn_off: light_21
+    - light.turn_off: light_22
+    - light.turn_off: light_23
+    - light.turn_off: light_24
+    - light.turn_off: light_25
+    - light.turn_off: light_26
+    - light.turn_off: light_27
+    - light.turn_off: light_28
+    - light.turn_off: light_29
+    - light.turn_off: light_30
+    - light.turn_off: light_31
+    - light.turn_off: light_32
+    - lambda: |-
+        id(master_switch_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(master_switch_pulse).publish_state(false);
+  - timing:
+    - ON for at most 0.4s
+    then:
+    - lambda: |-
+        id(master_switch_stop_pulse).publish_state(true);
+    - delay: 200ms
+    - lambda: |-
+        id(master_switch_stop_pulse).publish_state(false);
+
+# Manually-published pulses (no lambda): set true then false by the IN_33 on_multi_click
+# action above, and broadcast over UDP to cover mix dół/góra so they react with on_press.
+- platform: template
+  id: master_switch_pulse
+
+- platform: template
+  id: master_switch_stop_pulse
 
 - platform: gpio
   name: IN_34
